@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <h2>Dispositivos</h2>
+        <p>Cadastre e gerencie DVRs, NVRs e fontes RTSP agregadoras. As cameras do equipamento ficam dentro do dispositivo.</p>
+    </div>
+</section>
+
+{% if current_user.is_admin %}
+<section class="panel">
+    <h3>Novo dispositivo</h3>
+    <form method="post" action="/cameras" class="form-grid two-col" id="device-form">
+        <input type="hidden" name="return_to" value="devices">
+        <label>Tipo do dispositivo
+            <select name="device_type" id="device_type">
+                <option value="generic_rtsp">RTSP generico</option>
+                <option value="unv">UNV</option>
+                <option value="hikvision_dvr">Hikvision DVR</option>
+                <option value="hikvision_nvr">Hikvision NVR</option>
+            </select>
+        </label>
+        <div class="field-group wide" data-device-group="generic_rtsp">
+            <h4>DVR / RTSP generico</h4>
+            <p class="group-help">Cadastre o host do DVR. O sistema tenta descobrir automaticamente os canais no padrao RTSP realmonitor e cria as cameras dentro deste dispositivo.</p>
+            <input type="hidden" name="auto_discover" value="true">
+            <div class="group-grid">
+                <label>Nome do dispositivo<input name="name" placeholder="DVR Filial"></label>
+                <label>Descricao<input name="description" placeholder="Opcional"></label>
+                <label>IP / Host<input name="host" placeholder="10.107.29.194"></label>
+                <label>Porta RTSP<input type="number" name="rtsp_port" value="554"></label>
+                <label>Usuario<input name="username" placeholder="admin"></label>
+                <label>Senha<input type="password" name="password" placeholder="Senha RTSP"></label>
+            </div>
+        </div>
+        <div class="field-group wide" data-device-group="unv">
+            <h4>UNV</h4>
+            <p class="group-help">Cadastre o host do DVR/NVR UNV. O sistema descobre automaticamente os canais ativos no padrao RTSP `/unicast/c{channel}/s0/live`.</p>
+            <input type="hidden" name="auto_discover" value="true">
+            <div class="group-grid">
+                <label>Nome do dispositivo<input name="name" placeholder="NVR UNV"></label>
+                <label>Descricao<input name="description" placeholder="Opcional"></label>
+                <label>IP / Host<input name="host" placeholder="10.107.4.10"></label>
+                <label>Porta HTTP<input type="number" name="port" value="80"></label>
+                <label>Porta RTSP<input type="number" name="rtsp_port" value="554"></label>
+                <label>Usuario<input name="username" placeholder="admin"></label>
+                <label>Senha<input type="password" name="password" placeholder="Senha RTSP"></label>
+            </div>
+        </div>
+        <div class="field-group wide" data-device-group="hikvision_dvr hikvision_nvr">
+            <h4>Conexao Hikvision</h4>
+            <p class="group-help">Enter your Hikvision device connection details. O sistema vai descobrir automaticamente as cameras cadastradas no NVR.</p>
+            <div class="group-grid">
+                <label>Nome do dispositivo<input name="name" placeholder="NVR Matriz"></label>
+                <label>Host/IP<input name="host"></label>
+                <label>Porta HTTP<input type="number" name="port" value="80"></label>
+                <label>RTSP Port<input type="number" name="rtsp_port" value="554"></label>
+                <label>Usuario<input name="username"></label>
+                <label>Senha<input type="password" name="password"></label>
+                <label class="check"><input type="checkbox" name="use_ssl" value="true"> Use SSL</label>
+            </div>
+            <p class="group-help">Se o NVR estiver atras de NAT/roteador, informe aqui a porta RTSP publica correta.</p>
+        </div>
+        <button type="submit">Salvar dispositivo</button>
+    </form>
+</section>
+{% endif %}
+
+<section class="table-panel">
+    <h3>Dispositivos cadastrados</h3>
+    <div class="device-list">
+        {% for device in grouped_devices %}
+        <article class="device-card">
+            <div class="device-card-header">
+                <div>
+                    <strong>{{ device.device_name }}</strong>
+                    <div class="device-meta">
+                        <span>{{ device.device_type }}</span>
+                        <span>{{ device.host }}</span>
+                        <span>HTTP {{ device.port }}</span>
+                        <span>RTSP {{ device.cameras[0].rtsp_port if device.cameras else '-' }}</span>
+                        <span>{{ "SSL" if device.use_ssl else "Sem SSL" }}</span>
+                        {% if device.username %}
+                        <span>{{ device.username }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if current_user.is_admin %}
+                <div class="actions">
+                    <a
+                        href="/devices/view?device_type={{ device.device_type }}&host={{ device.host }}&port={{ device.port }}&username={{ device.username }}&use_ssl={{ 'true' if device.use_ssl else 'false' }}"
+                        class="device-link">
+                        Gerir cameras
+                    </a>
+                    <form method="post" action="/devices/delete">
+                        <input type="hidden" name="device_type" value="{{ device.device_type }}">
+                        <input type="hidden" name="host" value="{{ device.host }}">
+                        <input type="hidden" name="port" value="{{ device.port }}">
+                        <input type="hidden" name="username" value="{{ device.username }}">
+                        <input type="hidden" name="use_ssl" value="{{ 'true' if device.use_ssl else 'false' }}">
+                        <button type="submit" class="danger">Excluir dispositivo</button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+            <div class="device-meta">
+                <span>{{ device.cameras|length }} cameras</span>
+            </div>
+            <div class="device-camera-list">
+                {% for camera in device.cameras %}
+                <a href="/cameras/{{ camera.id }}">{{ camera.name }}</a>
+                {% else %}
+                <span class="empty-inline">Sem cameras vinculadas.</span>
+                {% endfor %}
+            </div>
+            {% if current_user.is_admin %}
+            <form method="post" action="/devices/update" class="device-edit-form">
+                <input type="hidden" name="original_device_type" value="{{ device.device_type }}">
+                <input type="hidden" name="original_host" value="{{ device.host }}">
+                <input type="hidden" name="original_port" value="{{ device.port }}">
+                <input type="hidden" name="original_username" value="{{ device.username }}">
+                <input type="hidden" name="original_use_ssl" value="{{ 'true' if device.use_ssl else 'false' }}">
+                <input type="hidden" name="device_type" value="{{ device.device_type }}">
+                <div class="group-grid">
+                    <label>Nome do dispositivo<input name="device_name" value="{{ device.device_name }}"></label>
+                    <label>Host/IP<input name="host" value="{{ device.host }}"></label>
+                    <label>Porta HTTP<input type="number" name="port" value="{{ device.port }}"></label>
+                    <label>RTSP Port<input type="number" name="rtsp_port" value="{{ device.cameras[0].rtsp_port if device.cameras else 554 }}"></label>
+                    <label>Usuario<input name="username" value="{{ device.username }}"></label>
+                    <label>Nova senha<input type="password" name="password" placeholder="Deixe em branco para manter"></label>
+                    <label class="check"><input type="checkbox" name="use_ssl" value="true" {% if device.use_ssl %}checked{% endif %}> Use SSL</label>
+                </div>
+                <button type="submit">Salvar dispositivo</button>
+            </form>
+            {% endif %}
+        </article>
+        {% else %}
+        <p>Nenhum dispositivo cadastrado.</p>
+        {% endfor %}
+    </div>
+</section>
+
+<script>
+(() => {
+    const select = document.getElementById("device_type");
+    if (!select) return;
+
+    const groups = Array.from(document.querySelectorAll("[data-device-group]"));
+
+    function toggleGroups() {
+        const current = select.value;
+        for (const group of groups) {
+            const allowed = (group.dataset.deviceGroup || "").split(" ");
+            const visible = allowed.includes(current);
+            group.hidden = !visible;
+            for (const field of group.querySelectorAll("input, select, textarea, button")) {
+                if (field === select) continue;
+                field.disabled = !visible;
+            }
+        }
+    }
+
+    select.addEventListener("change", toggleGroups);
+    toggleGroups();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <h2>{{ device_name }}</h2>
+        <p>{{ device_type }} | {{ host }}:{{ port }} | Gestao de cameras deste dispositivo.</p>
+    </div>
+</section>
+
+{% if error %}
+<div class="alert">{{ error }}</div>
+{% endif %}
+{% if message %}
+<div class="success-banner">{{ message }}</div>
+{% endif %}
+
+<section class="panel">
+    <div class="device-detail-toolbar">
+        <a href="/devices" class="device-link secondary-link">Voltar para dispositivos</a>
+        <a href="/cameras" class="device-link secondary-link">Ver todas as cameras</a>
+    </div>
+</section>
+
+<section class="detail-grid">
+    <div class="panel wide">
+        <h3>Resumo do dispositivo</h3>
+        <div class="device-meta">
+            <span>{{ device_type }}</span>
+            <span>{{ host }}</span>
+            <span>HTTP {{ port }}</span>
+            <span>{{ "SSL" if use_ssl else "Sem SSL" }}</span>
+            {% if username %}
+            <span>{{ username }}</span>
+            {% endif %}
+            <span>{{ cameras|length }} cameras</span>
+        </div>
+    </div>
+
+    {% if current_user.is_admin %}
+    <div class="panel wide">
+        <h3>Editar dispositivo</h3>
+        <form method="post" action="/devices/update" class="form-grid two-col">
+            <input type="hidden" name="original_device_type" value="{{ device_type }}">
+            <input type="hidden" name="original_host" value="{{ host }}">
+            <input type="hidden" name="original_port" value="{{ port }}">
+            <input type="hidden" name="original_username" value="{{ username }}">
+            <input type="hidden" name="original_use_ssl" value="{{ 'true' if use_ssl else 'false' }}">
+            <input type="hidden" name="device_type" value="{{ device_type }}">
+            <label>Nome do dispositivo<input name="device_name" value="{{ device_name }}" required></label>
+            <label>Host/IP<input name="host" value="{{ host }}" required></label>
+            <label>Porta HTTP<input type="number" name="port" value="{{ port }}" required></label>
+            <label>RTSP Port<input type="number" name="rtsp_port" value="{{ cameras[0].rtsp_port if cameras else 554 }}" required></label>
+            <label>Usuario<input name="username" value="{{ username }}"></label>
+            <label>Nova senha<input type="password" name="password" placeholder="Deixe em branco para manter"></label>
+            <label class="check"><input type="checkbox" name="use_ssl" value="true" {% if use_ssl %}checked{% endif %}> Use SSL</label>
+            <button type="submit">Salvar dispositivo</button>
+        </form>
+    </div>
+
+    <div class="panel wide">
+        <h3>Adicionar camera ao dispositivo</h3>
+        <form method="post" action="/devices/cameras" class="form-grid two-col">
+            <input type="hidden" name="device_type" value="{{ device_type }}">
+            <input type="hidden" name="device_name" value="{{ device_name }}">
+            <input type="hidden" name="host" value="{{ host }}">
+            <input type="hidden" name="port" value="{{ port }}">
+            <input type="hidden" name="rtsp_port" value="{{ cameras[0].rtsp_port if cameras else 554 }}">
+            <input type="hidden" name="username" value="{{ username }}">
+            <input type="hidden" name="password" value="{{ cameras[0].password if cameras else '' }}">
+            <input type="hidden" name="use_ssl" value="{{ 'true' if use_ssl else 'false' }}">
+            <label>Nome da camera<input name="name" placeholder="Canal adicional" required></label>
+            <label>Canal<input type="number" name="channel" min="1" value="{{ (cameras[-1].channel + 1) if cameras else 1 }}" required></label>
+            <label>Subtipo<input type="number" name="subtype" min="0" value="0" required></label>
+            <label class="wide">Descricao<textarea name="description" rows="3" placeholder="Opcional"></textarea></label>
+            <button type="submit">Adicionar camera</button>
+        </form>
+    </div>
+    {% endif %}
+
+    <div class="panel wide">
+        <h3>Cameras deste dispositivo</h3>
+        <div class="device-camera-admin-list">
+            {% for camera in cameras %}
+            <article class="device-camera-admin-item">
+                <div class="device-camera-admin-head">
+                    <div>
+                        <strong>{{ camera.name }}</strong>
+                        <div class="device-meta">
+                            <span>Canal {{ camera.channel }}</span>
+                            <span>Subtipo {{ camera.subtype }}</span>
+                            <span>{{ camera.id }}</span>
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <a href="/cameras/{{ camera.id }}" class="device-link secondary-link">Detalhes</a>
+                        {% if current_user.is_admin %}
+                        <form method="post" action="/cameras/{{ camera.id }}/delete">
+                            <button type="submit" class="danger">Excluir</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if current_user.is_admin %}
+                <form method="post" action="/devices/cameras/{{ camera.id }}/update" class="form-grid two-col device-camera-edit-form">
+                    <label>Nome da camera<input name="name" value="{{ camera.name }}" required></label>
+                    <label>Canal<input type="number" name="channel" min="1" value="{{ camera.channel }}" required></label>
+                    <label>Subtipo<input type="number" name="subtype" min="0" value="{{ camera.subtype }}" required></label>
+                    <label class="wide">Descricao<textarea name="description" rows="2">{{ camera.description }}</textarea></label>
+                    <button type="submit">Salvar camera</button>
+                </form>
+                {% endif %}
+            </article>
+            {% else %}
+            <div class="empty-state">Nenhuma camera encontrada para este dispositivo.</div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

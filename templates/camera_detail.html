@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <h2>{{ camera.name }}</h2>
+        <p>{{ camera.description or "Camera sem descricao cadastrada." }}</p>
+    </div>
+</section>
+
+<section class="detail-grid">
+    {% if current_user.is_admin %}
+    <div class="panel wide">
+        <h3>Editar camera</h3>
+        <form method="post" action="/cameras/{{ camera.id }}/rename" class="inline-form">
+            <label>Nome da camera
+                <input type="text" name="name" value="{{ camera.name }}" required>
+            </label>
+            <button type="submit">Salvar nome</button>
+        </form>
+        <div class="camera-detail-admin-actions">
+            <form method="post" action="/cameras/{{ camera.id }}/delete">
+                <button type="submit" class="danger">Excluir camera</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="panel wide">
+        <h3>Visualizacao Web</h3>
+        <iframe
+            class="stream-frame"
+            src="{{ go2rtc_base_url }}/stream.html?src={{ go2rtc_stream_name }}"
+            allow="autoplay; fullscreen; microphone; camera"
+            loading="lazy">
+        </iframe>
+        <p>Player entregue pelo go2rtc usando a stream gerada para esta camera.</p>
+    </div>
+
+    {% if can_view_snapshot and has_snapshot %}
+    <div class="panel">
+        <h3>Snapshot</h3>
+        <img class="detail-image" src="/cameras/{{ camera.id }}/snapshot" alt="Snapshot da camera {{ camera.name }}">
+    </div>
+    {% endif %}
+
+    <div class="panel">
+        <h3>Conexao</h3>
+        <dl class="info-list">
+            <dt>Host</dt><dd>{{ camera.host }}</dd>
+            <dt>Canal</dt><dd>{{ camera.channel }}</dd>
+            <dt>Subtipo</dt><dd>{{ camera.subtype }}</dd>
+            <dt>Tipo</dt><dd>{{ camera.device_type }}</dd>
+            <dt>URL RTSP</dt><dd><code>{{ rtsp_url }}</code></dd>
+        </dl>
+        <p>Use essa URL em players RTSP, integrações externas ou proxies como go2rtc/Home Assistant.</p>
+        {% if not has_snapshot %}
+        <p>Esta camera nao possui snapshot HTTP configurado. Para navegador, use um proxy RTSP para WebRTC/HLS ou configure uma URL de snapshot.</p>
+        {% endif %}
+    </div>
+
+    <div class="panel wide">
+        <h3>ISAPI</h3>
+        {% for key, value in isapi_info.items() %}
+        <h4>{{ key }}</h4>
+        <pre>{{ value }}</pre>
+        {% else %}
+        <p>ISAPI nao habilitada para esta camera.</p>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}

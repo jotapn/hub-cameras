@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-header">
+    <div class="dashboard-header-row">
+        <div>
+        <h2>Painel</h2>
+        <p>Cameras liberadas para o seu usuario.</p>
+        </div>
+        <button type="button" class="secondary eye-toggle" id="dashboard-visibility-toggle" aria-pressed="true" title="Ocultar ou mostrar informacoes dos cards">
+            <i data-lucide="eye"></i>
+            <span>Ocultar info</span>
+        </button>
+    </div>
+</section>
+<section class="camera-grid" id="dashboard-grid">
+    {% for camera in cameras %}
+    <article class="camera-card" data-camera-id="{{ camera.id }}">
+        {% if build_rtsp_url(camera) %}
+        <div
+            class="stream-placeholder"
+            data-stream-url="{{ go2rtc_base_url }}/stream.html?src={{ camera_stream_name(camera) }}"
+            data-camera-name="{{ camera.name }}">
+            {% if auto_stream %}
+            <iframe
+                class="card-stream-frame"
+                src="{{ go2rtc_base_url }}/stream.html?src={{ camera_stream_name(camera) }}"
+                allow="autoplay; fullscreen; microphone; camera"
+                loading="lazy">
+            </iframe>
+            {% elif camera.id in snapshot_camera_ids %}
+            <img src="/cameras/{{ camera.id }}/snapshot" alt="Snapshot da camera {{ camera.name }}" draggable="false">
+            {% else %}
+            <div class="detail-image no-image">Stream sob demanda</div>
+            {% endif %}
+            {% if not auto_stream %}
+            <button type="button" class="stream-trigger sr-only" tabindex="-1" aria-hidden="true">Abrir ao vivo</button>
+            {% endif %}
+        </div>
+        {% elif camera.id in snapshot_camera_ids %}
+        <img src="/cameras/{{ camera.id }}/snapshot" alt="Snapshot da camera {{ camera.name }}" draggable="false">
+        {% else %}
+        <div class="detail-image no-image">Sem stream disponivel</div>
+        {% endif %}
+        <div class="camera-body">
+            <h3>{{ camera.name }}</h3>
+            <div class="camera-actions">
+                <a href="/cameras/{{ camera.id }}">Detalhes</a>
+                <button type="button" class="live-link" data-target-live>Ao vivo</button>
+            </div>
+        </div>
+    </article>
+    {% else %}
+    <p>Nenhuma camera liberada para este usuario.</p>
+    {% endfor %}
+</section>
+
+<script src="/assets/Sortable.min.js"></script>
+<script>
+(() => {
+    const grid = document.getElementById("dashboard-grid");
+    const visibilityToggle = document.getElementById("dashboard-visibility-toggle");
+    if (grid && visibilityToggle) {
+        const icon = visibilityToggle.querySelector("i");
+        const label = visibilityToggle.querySelector("span");
+
+        function applyVisibility(hidden) {
+            grid.classList.toggle("hide-camera-info", hidden);
+            visibilityToggle.setAttribute("aria-pressed", String(!hidden));
+            if (label) label.textContent = hidden ? "Mostrar info" : "Ocultar info";
+            if (icon) {
+                icon.setAttribute("data-lucide", hidden ? "eye-off" : "eye");
+                if (window.lucide) window.lucide.createIcons();
+            }
+        }
+
+        visibilityToggle.addEventListener("click", () => {
+            applyVisibility(!grid.classList.contains("hide-camera-info"));
+        });
+    }
+
+    async function saveOrder() {
+        const cameraIds = Array.from(document.querySelectorAll(".camera-card[data-camera-id]"))
+            .map((card) => Number(card.dataset.cameraId));
+        try {
+            await fetch("/dashboard/layout", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ camera_ids: cameraIds })
+            });
+        } catch (_) {
+        }
+    }
+    if (window.Sortable && grid) {
+        Sortable.create(grid, {
+            animation: 180,
+            easing: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+            draggable: ".camera-card[data-camera-id]",
+            ghostClass: "camera-card-ghost",
+            chosenClass: "camera-card-chosen",
+            dragClass: "camera-card-drag",
+            forceFallback: true,
+            fallbackOnBody: true,
+            fallbackTolerance: 4,
+            swapThreshold: 0.65,
+            onEnd: () => {
+                saveOrder();
+            }
+        });
+    }
+
+    const autoStream = {{ 'true' if auto_stream else 'false' }};
+    if (autoStream) return;
+    const placeholders = Array.from(document.querySelectorAll(".stream-placeholder"));
+    if (!placeholders.length) return;
+
+    function stopAllStreams() {
+        for (const item of placeholders) {
+            const frame = item.querySelector("iframe");
+            if (!frame) continue;
+            frame.remove();
+            item.classList.remove("is-live");
+        }
+    }
+
+    for (const item of placeholders) {
+        const button = item.querySelector(".stream-trigger");
+        const liveAction = item.parentElement.querySelector("[data-target-live]");
+        if (liveAction && button) {
+            liveAction.addEventListener("click", () => button.click());
+        }
+        if (!button) continue;
+
+        button.addEventListener("click", () => {
+            const active = item.classList.contains("is-live");
+            stopAllStreams();
+            if (active) return;
+
+            const frame = document.createElement("iframe");
+            frame.className = "card-stream-frame";
+            frame.src = item.dataset.streamUrl;
+            frame.allow = "autoplay; fullscreen; microphone; camera";
+            frame.loading = "lazy";
+            item.prepend(frame);
+            item.classList.add("is-live");
+        });
+    }
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <h2>go2rtc</h2>
+        <p>Proxy local para reproduzir RTSP no navegador via WebRTC/MSE.</p>
+    </div>
+</section>
+
+<section class="panel">
+    <h3>Status</h3>
+    <dl class="info-list">
+        <dt>Base URL</dt><dd><code>{{ go2rtc_base_url }}</code></dd>
+        <dt>API</dt><dd>{{ "Online" if go2rtc_api_online else "Offline" }}</dd>
+        <dt>Config</dt><dd><code>{{ config_path }}</code></dd>
+    </dl>
+    <form method="post" action="/go2rtc/sync">
+        <button type="submit">Sincronizar configuracao</button>
+    </form>
+</section>
+
+<section class="table-panel">
+    <h3>Streams</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Camera</th>
+                <th>Stream</th>
+                <th>RTSP origem</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in streams %}
+            <tr>
+                <td>{{ item.camera.name }}</td>
+                <td><code>{{ item.stream_name }}</code></td>
+                <td><code>{{ item.rtsp_url }}</code></td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="3">Nenhuma camera cadastrada.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<section class="panel">
+    <h3>go2rtc.yaml</h3>
+    <pre>{{ config_text }}</pre>
+</section>
+{% endblock %}

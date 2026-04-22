@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <h2>Usuarios e perfis</h2>
+        <p>Crie perfis, vincule cameras aos perfis e depois vincule perfis aos usuarios.</p>
+    </div>
+</section>
+
+{% if error %}
+<section class="panel">
+    <div class="alert">{{ error }}</div>
+</section>
+{% endif %}
+
+{% if success %}
+<section class="panel">
+    <div class="success-banner">{{ success }}</div>
+</section>
+{% endif %}
+
+<section class="panel">
+    <h3>Novo perfil</h3>
+    <form method="post" action="/profiles" class="form-grid two-col">
+        <label>Nome do perfil<input name="name" required></label>
+        <label>Descricao<input name="description"></label>
+        <button type="submit">Criar perfil</button>
+    </form>
+</section>
+
+<section class="table-panel">
+    <h3>Perfis e cameras</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Perfil</th>
+                <th>Vincular camera</th>
+                <th>Permissoes atuais</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for profile in profiles %}
+            <tr>
+                <td>{{ profile.name }}<br><small>{{ profile.description }}</small></td>
+                <td>
+                    <form method="post" action="/profiles/{{ profile.id }}/permissions" class="inline-form">
+                        <select name="camera_id" required>
+                            <option value="">Selecione uma camera</option>
+                            {% for camera in cameras %}
+                            <option value="{{ camera.id }}">{{ camera.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <label class="check"><input type="checkbox" name="can_view_live" value="true" checked> Live</label>
+                        <label class="check"><input type="checkbox" name="can_view_snapshot" value="true" checked> Snapshot</label>
+                        <label class="check"><input type="checkbox" name="can_manage" value="true"> Gerenciar</label>
+                        <button type="submit">Salvar</button>
+                    </form>
+                </td>
+                <td>
+                    {% for item in profile_permissions if item.profile_id == profile.id %}
+                    <div>{{ item.camera.name }} | Live: {{ "Sim" if item.can_view_live else "Nao" }} | Snapshot: {{ "Sim" if item.can_view_snapshot else "Nao" }} | Gerenciar: {{ "Sim" if item.can_manage else "Nao" }}</div>
+                    {% else %}
+                    <div>Sem cameras vinculadas.</div>
+                    {% endfor %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<section class="panel">
+    <h3>Novo usuario</h3>
+    <form method="post" action="/users" class="form-grid two-col">
+        <label>Usuario<input name="username" required></label>
+        <label>E-mail<input type="email" name="email" required></label>
+        <label>Nome completo<input name="full_name" required></label>
+        <label>Senha<input type="password" name="password" required></label>
+        <label class="check"><input type="checkbox" name="is_admin" value="true"> Administrador</label>
+        <label class="check"><input type="checkbox" name="is_active" value="true" checked> Ativo</label>
+        <button type="submit">Criar usuario</button>
+    </form>
+</section>
+
+<section class="table-panel">
+    <table>
+        <thead>
+            <tr>
+                <th>Usuario</th>
+                <th>Perfil</th>
+                <th>Status</th>
+                <th>Acoes</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.username }}<br><small>{{ user.full_name }}</small><br><small>{{ user.email }}</small></td>
+                <td>{{ "Admin" if user.is_admin else "Operador" }}</td>
+                <td>{{ "Ativo" if user.is_active else "Inativo" }}</td>
+                <td class="actions">
+                    <form method="post" action="/users/{{ user.id }}/toggle">
+                        <button type="submit">Alternar status</button>
+                    </form>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="4">
+                    <form method="post" action="/users/{{ user.id }}/profiles" class="inline-form">
+                        <select name="profile_id" required>
+                            <option value="">Selecione um perfil</option>
+                            {% for profile in profiles %}
+                            <option value="{{ profile.id }}">{{ profile.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit">Vincular perfil</button>
+                    </form>
+                    <div class="device-meta">
+                        {% for rel in user_profiles if rel.user_id == user.id %}
+                        <span>{{ rel.profile.name }}</span>
+                        {% else %}
+                        <span>Sem perfis vinculados.</span>
+                        {% endfor %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+<section class="table-panel">
+    <h3>Permissoes diretas legadas</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Usuario</th>
+                <th>Camera</th>
+                <th>Live</th>
+                <th>Snapshot</th>
+                <th>Gerenciar</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in permissions %}
+            <tr>
+                <td>{{ item.user.username }}</td>
+                <td>{{ item.camera.name }}</td>
+                <td>{{ "Sim" if item.can_view_live else "Nao" }}</td>
+                <td>{{ "Sim" if item.can_view_snapshot else "Nao" }}</td>
+                <td>{{ "Sim" if item.can_manage else "Nao" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

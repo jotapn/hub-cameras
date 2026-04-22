@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-header">
+    <div>
+        <h2>Cameras</h2>
+        <p>Gerencie cameras e canais individuais. Dispositivos agregadores ficam em Dispositivos.</p>
+    </div>
+</section>
+
+{% if current_user.is_admin %}
+<section class="panel">
+    <div class="panel-header-actions">
+        <div>
+            <h3>Nova camera individual</h3>
+            <p class="group-help">Use esta tela apenas para uma camera individual. Para DVR/NVR com varios canais por host, use Dispositivos.</p>
+        </div>
+        <button type="button" class="secondary" id="toggle-new-camera-form">Cadastrar nova camera</button>
+    </div>
+    <form method="post" action="/cameras" class="form-grid two-col" id="new-camera-form" hidden>
+        <input type="hidden" name="device_type" value="generic_rtsp">
+        <input type="hidden" name="auto_discover" value="false">
+        <input type="hidden" name="return_to" value="cameras">
+        <div class="field-group wide">
+            <h4>Camera RTSP generica</h4>
+            <div class="group-grid">
+                <label>Nome da camera<input name="name" placeholder="Portaria" required></label>
+                <label>Nome do dispositivo<input name="device_name" placeholder="Camera RTSP 10.143.7.6"></label>
+                <label>IP / Host<input name="host" placeholder="10.143.7.6" required></label>
+                <label>Porta RTSP<input type="number" name="rtsp_port" value="554"></label>
+                <label>Usuario<input name="username" placeholder="admin" required></label>
+                <label>Senha<input type="password" name="password" required></label>
+                <label>Canal<input type="number" name="channel" value="1" min="1"></label>
+                <label>Subtipo<input type="number" name="subtype" value="0" min="0"></label>
+                <label class="wide">Descricao<textarea name="description" rows="3" placeholder="Opcional"></textarea></label>
+            </div>
+        </div>
+        <div class="camera-form-actions">
+            <button type="submit">Salvar camera</button>
+            <button type="button" class="secondary" id="cancel-new-camera-form">Cancelar</button>
+        </div>
+    </form>
+</section>
+{% endif %}
+
+<section class="table-panel">
+    <h3>Todas as cameras</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Host</th>
+                <th>Canal</th>
+                <th>Tipo</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for camera in cameras %}
+            <tr>
+                <td>{{ camera.name }}</td>
+                <td>{{ camera.host }}</td>
+                <td>{{ camera.channel }}</td>
+                <td>{{ camera.device_type }}</td>
+                <td class="actions">
+                    {% if current_user.is_admin %}
+                    <form method="post" action="/cameras/{{ camera.id }}/rename" class="inline-form">
+                        <input type="text" name="name" value="{{ camera.name }}">
+                        <button type="submit" class="secondary">Renomear</button>
+                    </form>
+                    {% endif %}
+                    <a href="/cameras/{{ camera.id }}">Detalhes</a>
+                    {% if current_user.is_admin %}
+                    <form method="post" action="/cameras/{{ camera.id }}/delete">
+                        <button type="submit" class="danger">Excluir</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+
+{% if current_user.is_admin %}
+<script>
+(() => {
+    const toggleButton = document.getElementById("toggle-new-camera-form");
+    const cancelButton = document.getElementById("cancel-new-camera-form");
+    const form = document.getElementById("new-camera-form");
+    if (!toggleButton || !form) return;
+
+    function setOpen(open) {
+        form.hidden = !open;
+        toggleButton.hidden = open;
+    }
+
+    toggleButton.addEventListener("click", () => setOpen(true));
+    if (cancelButton) {
+        cancelButton.addEventListener("click", () => setOpen(false));
+    }
+})();
+</script>
+{% endif %}
+{% endblock %}

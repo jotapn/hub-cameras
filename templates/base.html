@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title if title else "Gestao de Cameras" }}</title>
+    <link rel="stylesheet" href="/assets/css2_2832c0ff631d.css">
+    <link rel="stylesheet" href="/assets/css2_9b8bf743d4a8.css">
+    <link rel="stylesheet" href="/assets/css2_62759cd015bd.css">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="bg-scene"></div>
+    <div class="app-shell">
+        <header class="topbar glass">
+            <div class="brand-block">
+                <div class="brand-chip">
+                    <i data-lucide="shield"></i>
+                    <span>Vision Hub</span>
+                </div>
+                <h1>Centro de Monitoramento</h1>
+            </div>
+            {% if current_user %}
+            <div class="topbar-side">
+                <nav class="topnav">
+                    <a class="{{ 'active' if current_path == '/dashboard' else '' }}" href="/dashboard">Dashboard</a>
+                    {% if current_user.is_admin %}
+                    <div class="topnav-dropdown {{ 'active' if current_path.startswith('/devices') or current_path.startswith('/cameras') or current_path.startswith('/users') or current_path.startswith('/go2rtc') else '' }}">
+                        <button type="button" class="topnav-dropdown-toggle">
+                            Configuracoes
+                            <i data-lucide="chevron-down"></i>
+                        </button>
+                        <div class="topnav-dropdown-menu">
+                            <a class="{{ 'active' if current_path.startswith('/devices') else '' }}" href="/devices">Dispositivos</a>
+                            <a class="{{ 'active' if current_path.startswith('/cameras') else '' }}" href="/cameras">Cameras</a>
+                            <a class="{{ 'active' if current_path.startswith('/users') else '' }}" href="/users">Usuarios</a>
+                            <a class="{{ 'active' if current_path.startswith('/go2rtc') else '' }}" href="/go2rtc">go2rtc</a>
+                        </div>
+                    </div>
+                    {% endif %}
+                </nav>
+                <div class="header-tools">
+                    <button type="button" class="secondary icon-button" id="header-focus-toggle" title="Modo foco">
+                        <i data-lucide="scan-eye"></i>
+                    </button>
+                </div>
+                <div class="user-panel">
+                    {% set parts = current_user.full_name.split() %}
+                    <div class="user-avatar" title="{{ current_user.full_name }} (@{{ current_user.username }})">
+                        {{ (parts[0][0] if parts else current_user.username[0]) ~ (parts[-1][0] if parts|length > 1 else '') }}
+                    </div>
+                    <form method="post" action="/logout">
+                        <button type="submit" class="secondary">Sair</button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </header>
+        {% if current_user %}
+        <div class="mini-bar glass" id="mini-bar">
+            <button type="button" class="secondary icon-button" id="mini-bar-menu" title="Mostrar cabecalho">
+                <i data-lucide="panel-top-open"></i>
+            </button>
+            <button type="button" class="secondary icon-button" id="mini-bar-eye" title="Ocultar ou mostrar informacoes">
+                <i data-lucide="eye"></i>
+            </button>
+            <button type="button" class="secondary icon-button" id="mini-bar-focus" title="Sair do modo foco">
+                <i data-lucide="scan-search"></i>
+            </button>
+            <div class="user-avatar mini-avatar" title="{{ current_user.full_name }} (@{{ current_user.username }})">
+                {{ (parts[0][0] if parts else current_user.username[0]) ~ (parts[-1][0] if parts|length > 1 else '') }}
+            </div>
+        </div>
+        {% endif %}
+        <main class="content-frame">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+    <script src="/assets/lucide_latest_2eebd0ebe8c2.js"></script>
+    <script>
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+
+        (() => {
+            const body = document.body;
+            const topbar = document.querySelector(".topbar");
+            const focusButton = document.getElementById("header-focus-toggle");
+            const miniBarMenu = document.getElementById("mini-bar-menu");
+            const miniBarFocus = document.getElementById("mini-bar-focus");
+            const miniBarEye = document.getElementById("mini-bar-eye");
+            const dashboardEye = document.getElementById("dashboard-visibility-toggle");
+            if (!topbar) return;
+
+            let focusMode = false;
+
+            function setFocusMode(next) {
+                focusMode = next;
+                body.classList.toggle("header-focus", next);
+            }
+
+            if (focusButton) {
+                focusButton.addEventListener("click", () => setFocusMode(!focusMode));
+            }
+
+            if (miniBarFocus) {
+                miniBarFocus.addEventListener("click", () => setFocusMode(!focusMode));
+            }
+
+            if (miniBarMenu) {
+                miniBarMenu.addEventListener("click", () => {
+                    setFocusMode(false);
+                });
+            }
+
+            if (miniBarEye) {
+                const syncEyeVisibility = () => {
+                    miniBarEye.style.display = dashboardEye ? "inline-flex" : "none";
+                };
+                syncEyeVisibility();
+                miniBarEye.addEventListener("click", () => {
+                    if (dashboardEye) dashboardEye.click();
+                });
+            }
+        })();
+    </script>
+</body>
+</html>

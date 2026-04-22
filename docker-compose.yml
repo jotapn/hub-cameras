@@ -1,0 +1,26 @@
+services:
+  app:
+    build: .
+    container_name: camera_app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./cameras.db:/app/cameras.db
+      - ./go2rtc.yaml:/app/go2rtc.yaml
+    environment:
+      GO2RTC_BASE_URL: http://go2rtc:1984
+      GO2RTC_CONFIG_PATH: /app/go2rtc.yaml
+    depends_on:
+      - go2rtc
+
+  go2rtc:
+    image: alexxit/go2rtc:latest
+    container_name: go2rtc
+    ports:
+      - "1984:1984"
+      - "8554:8554"
+      - "8555:8555"
+      - "8555:8555/udp"
+    volumes:
+      - ./go2rtc.yaml:/config/go2rtc.yaml
+    command: ["-config", "/config/go2rtc.yaml"]

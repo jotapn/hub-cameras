@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link rel="stylesheet" href="/assets/css2_2832c0ff631d.css">
+    <link rel="stylesheet" href="/assets/css2_9b8bf743d4a8.css">
+    <link rel="stylesheet" href="/assets/css2_62759cd015bd.css">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="login-page">
+    <div class="bg-scene"></div>
+    <div class="login-card glass hero-card">
+        <div class="brand-chip">
+            <i data-lucide="shield"></i>
+            <span>Vision Hub</span>
+        </div>
+        <h1>Controle de Cameras com Stream Unificado</h1>
+        <p>Centralize NVRs, RTSP generico, go2rtc e perfis de acesso em uma unica operacao.</p>
+        {% if error %}
+        <div class="alert">{{ error }}</div>
+        {% endif %}
+        <form method="post" action="/login" class="form-grid">
+            <label>Usuario
+                <input name="username" required>
+            </label>
+            <label>Senha
+                <input type="password" name="password" required>
+            </label>
+            <button type="submit">Entrar</button>
+        </form>
+        <small>Primeiro acesso: admin / admin123</small>
+    </div>
+    <script src="/assets/lucide_latest_2eebd0ebe8c2.js"></script>
+    <script>
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>
